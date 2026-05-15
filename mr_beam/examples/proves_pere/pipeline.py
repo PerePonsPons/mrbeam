@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
 import os
+
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.append(os.path.join(BASE_PATH, "mr_beam", "ga"))
+sys.path.append(os.path.join(BASE_PATH, "mr_beam", "imagingbase"))
+sys.path.append(os.path.join(BASE_PATH, "mr_beam", "itreg"))
 import json
 import re
 import argparse
