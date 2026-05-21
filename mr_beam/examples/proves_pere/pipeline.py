@@ -3,25 +3,34 @@
 
 import sys
 import os
+from pathlib import Path
 
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Altres mòduls
 
-sys.path.append(os.path.join(BASE_PATH, "mr_beam", "ga"))
-sys.path.append(os.path.join(BASE_PATH, "mr_beam", "imagingbase"))
-sys.path.append(os.path.join(BASE_PATH, "mr_beam", "itreg"))
+# Local project paths. Keep these relative so the script also works outside
+# the original Documents\GitHub checkout.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT / "mr_beam" / "ga" / "GA"))
+sys.path.insert(0, str(REPO_ROOT / "mr_beam" / "imagingbase"))
+sys.path.insert(0, str(REPO_ROOT / "mr_beam" / "itreg"))
+
 import json
 import re
 import argparse
 import math
+import shutil
+import subprocess
+import webbrowser
 import numpy as np
 import matplotlib.pyplot as plt
-
-import ehtim as eh
 import pygmo as pg
 
-import GA.solver as solver
-from GA.problems import Scattering
-from GA.pso import CooperativeGame
+import ehtim as eh
+
+# IMPORTS CORRECTES
+import solver
+from problems import Scattering
+from pso import CooperativeGame
 from pyswarms.utils.plotters import plot_cost_history
 
 plt.ioff()
@@ -45,6 +54,35 @@ def set_thread_env(n: int | None = None) -> None:
 
 def ensure_odd(n: int) -> int:
     return n if (n % 2 == 1) else (n + 1)
+
+
+def open_pdf_in_chrome(path: str) -> None:
+    pdf_path = Path(path).resolve()
+    if not pdf_path.exists():
+        print(f"[WARN] Could not open PDF because it does not exist: {pdf_path}")
+        return
+
+    uri = pdf_path.as_uri()
+    chrome_candidates = [
+        shutil.which("chrome"),
+        shutil.which("chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+    ]
+
+    for chrome_path in chrome_candidates:
+        if chrome_path and os.path.exists(chrome_path):
+            subprocess.Popen(
+                [chrome_path, "--new-window", uri],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            print(f"[OK] Opened comparison PDF in Chrome: {pdf_path}")
+            return
+
+    webbrowser.open_new(uri)
+    print(f"[OK] Opened comparison PDF in the default browser: {pdf_path}")
 
 
 def select_band(obs: eh.obsdata.Obsdata,
@@ -257,7 +295,7 @@ def save_panel_figure(outpath: str,
 # Optimizers
 # -----------------------------
 def run_pso(dictionary: dict,
-            udp: pg.problem,
+            udp,
             scatteringfit,
             prior: eh.image.Image,
             obs_sc: eh.obsdata.Obsdata,
@@ -663,8 +701,9 @@ def run_scattering_imaging(args, npix: int) -> None:
         img_scattered_sim.display(export_pdf=f"{args.outdir}/sim_scattered.pdf", show=False)
 
     nu_ghz = rf / 1e9
+    compare_pdf = os.path.join(args.outdir, "compare_sources_screens.pdf")
     save_panel_figure(
-        outpath=f"{args.outdir}/compare_sources_screens.pdf",
+        outpath=compare_pdf,
         img_unscattered_reco=img_reco,
         img_scattered_sim=img_scattered_sim,
         img_scattered_reco=img_scattered_reco,
@@ -675,6 +714,7 @@ def run_scattering_imaging(args, npix: int) -> None:
 
     json.dump(dictionary, open(f"{args.outdir}/config_used.json", "w"), indent=2)
     print(f"[OK] Done. Outputs in: {args.outdir}")
+    open_pdf_in_chrome(compare_pdf)
 
 
 # -----------------------------
