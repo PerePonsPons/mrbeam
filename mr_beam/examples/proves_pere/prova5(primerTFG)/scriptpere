@@ -1,0 +1,12 @@
+import numpy as np
+
+# Si tens l'arxiu agrupat:
+data = np.load("student_data.npz")
+
+x = data["x"]  # (64,)
+times = data["times"]  # (12,)
+nu_train = data["train_frequencies"]  # (12, 9)
+nu_val = data["validation_frequencies"]  # (12, 5)
+vis_train = data["vis_train"]  # (12, 9), complex
+vis_val = data["vis_validation"]  # (12, 5), complex
+noise_std = float(data["noise_std"])  # escalard,
