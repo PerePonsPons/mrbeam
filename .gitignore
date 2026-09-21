@@ -35,3 +35,5 @@ mr_beam/examples/proves_pere/resultats*/
 mr_beam/examples/proves_pere/*_results/
 mr_beam/examples/proves_pere/*_check/
 *.tar.gz
+*.csv
+
