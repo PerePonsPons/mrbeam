@@ -123,16 +123,20 @@ for i, t in enumerate(times):
 
   def loss_gaussian(params):
     amp, mu, sigma = params
+    # Aquí s'utilitza 'xi' (64,) perquè forward_operator treballa amb les dades originals
     profile = gaussian_profile(xi, amp, mu, sigma)
     v_pred = forward_operator(profile, t_single, nu_t)
     return np.sum(np.abs(v_pred - v_obs_t) ** 2) / (noise_std**2)
 
   res = minimize(loss_gaussian, p0, method="L-BFGS-B", bounds=bounds)
 
+  # Primer s'extreuen els paràmetres trobats:
   amp_fit, mu_fit, sigma_fit = res.x
   fit_params.append({"t": t, "amp": amp_fit, "mu": mu_fit, "sigma": sigma_fit})
 
-  gauss_curve = gaussian_profile(xi, amp_fit, mu_fit, sigma_fit)
+  # Després es genera la corba suau de 500 punts:
+  xi_plot = np.linspace(-0.5, 0.5, 500)
+  gauss_curve = gaussian_profile(xi_plot, amp_fit, mu_fit, sigma_fit)
   gaussians_per_t.append(gauss_curve)
 
   p0 = [amp_fit, mu_fit, sigma_fit]
@@ -144,16 +148,17 @@ df_motion = pd.DataFrame(fit_params)
 # ----------------------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
+# Gràfic 1: Perfils de les gaussianes
 colors = plt.cm.viridis(np.linspace(0, 1, len(times)))
 for i, t in enumerate(times):
-  axes[0].plot(
-      xi,
-      gaussians_per_t[i],
-      label=f"t = {t:.2f}",
-      color=colors[i],
-      lw=2.0,
-      alpha=0.9,
-  )
+    axes[0].plot(
+        xi_plot,
+        gaussians_per_t[i],
+        label=f"t = {t:.2f}",
+        color=colors[i],
+        lw=2.0,
+        alpha=0.9,
+    )
 
 axes[0].set_title("Evolució temporal del perfil gaussià", fontsize=12)
 axes[0].set_xlabel(r"Posició espacial $\xi$", fontsize=11)
@@ -162,20 +167,22 @@ axes[0].set_xlim(-0.5, 0.5)
 axes[0].grid(True, linestyle="--", alpha=0.5)
 axes[0].legend(loc="upper right", fontsize=8, ncol=2)
 
+# Gràfic 2: Moviment invertit (Abscisses = Posició mu, Ordenades = Temps t)
 axes[1].plot(
-    df_motion["t"],
-    df_motion["mu"],
+    df_motion["mu"],        # <-- Eix X: Posició espacial del centre (abscisses)
+    df_motion["t"],         # <-- Eix Y: Temps (ordenades)
     marker="o",
     linestyle="-",
     color="crimson",
     lw=2.2,
     markersize=6,
-    label=r"Posició del centre $\mu(t)$",
+    label=r"Trajectòria $\mu(t)$",
 )
-axes[1].set_title("Moviment de l'objecte (Posició vs Temps)", fontsize=12)
-axes[1].set_xlabel("Temps (t)", fontsize=11)
-axes[1].set_ylabel(r"Posició espacial del centre ($\mu$)", fontsize=11)
-axes[1].set_ylim(-0.4, 0.4)
+axes[1].set_title("Moviment de l'objecte (Temps vs Posició)", fontsize=12)
+axes[1].set_xlabel(r"Posició espacial del centre ($\mu$)", fontsize=11)
+axes[1].set_ylabel("Temps (t)", fontsize=11)
+axes[1].set_xlim(-0.5, 0.5)
+axes[1].set_ylim(times.min(), times.max())
 axes[1].grid(True, linestyle="--", alpha=0.5)
 axes[1].legend(loc="best", fontsize=10)
 
