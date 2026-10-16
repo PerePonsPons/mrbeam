@@ -135,8 +135,8 @@ for lmbda in lambdas:
         elapsed = time.time() - t0
         
         # Avaluem les mètriques amb la solució trobada
-        v_pred = calcular_visibilitats_model(movie_reco)
-        chi2_val = calcular_chi2_total(v_pred, vis_obs)
+        v_mod = calcular_visibilitats_model(movie_reco)
+        chi2_val = calcular_chi2_total(v_mod, vis_obs)
         chi2_red = chi2_val / n_data
         
         print(f" -> lambda={lmbda:8.2g} | mu={mu:8.2g} | chi2_red={chi2_red:6.2f} | {elapsed:.1f}s")
@@ -160,17 +160,34 @@ df.to_csv("resultats_grid_lambda_mu.csv", index=False)
 print("\n[OK] Taula guardada a 'resultats_grid_lambda_mu.csv'.")
 
 # ----------------------------------------------------------------------
-# 7. Selecció del millor model pel Principi de Discrepància (chi2_red ~ 1)
+# 7. Selecció del model òptim pel Principi de Discrepància (chi2_red ~ 1)
 # ----------------------------------------------------------------------
-best = df.loc[(df["chi2_red"] - 1.0).abs().idxmin()]
-best_key = (best["lambda"], best["mu"])
-best_movie = movies[best_key]
+diferencia_minima = float("inf")
+millor_lambda = None
+millor_mu = None
+millor_chi2 = None
+
+# Recorrem directament la llista de diccionaris 'results'
+for fila in results:
+    chi2_r = fila["chi2_red"]
+    
+    # Calculem quant s'allunya el chi2 reduït del valor teòric ideal (1.0)
+    distancia_a_un = abs(chi2_r - 1.0)
+    
+    # Guardem la combinació que més s'apropi a 1.0
+    if distancia_a_un < diferencia_minima:
+        diferencia_minima = distancia_a_un
+        millor_lambda = fila["lambda"]
+        millor_mu = fila["mu"]
+        millor_chi2 = chi2_r
+
+best_movie = movies[(millor_lambda, millor_mu)]
 
 print(f"\n=======================================================")
 print(f"Millor parella trobada (chi2_red mes proper a 1):")
-print(f" - lambda: {best['lambda']}")
-print(f" - mu:     {best['mu']}")
-print(f" - chi2_red: {best['chi2_red']:.3f}")
+print(f" - lambda: {millor_lambda}")
+print(f" - mu:     {millor_mu}")
+print(f" - chi2_red: {millor_chi2:.3f}")
 print(f"=======================================================")
 
 # ----------------------------------------------------------------------
